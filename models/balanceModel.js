@@ -2,29 +2,29 @@ const pool = require('./db');
 
 const balanceModel = {
   getUserBalance: async (userId) => {
-    const [rows] = await pool.query('SELECT * FROM balances WHERE user_id = ?', [userId]);
-    // console.log(rows, rows[0]);
-    return rows[0];
+    const result = await pool.query('SELECT * FROM balances WHERE user_id = $1', [userId]);
+    return result.rows[0];
   },
   
   updateBalance: async (userId, amount) => {
     // First check if balance exists
-    const [existing] = await pool.query('SELECT * FROM balances WHERE user_id = ?', [userId]);
+    const existing = await pool.query('SELECT * FROM balances WHERE user_id = $1', [userId]);
     let newAmount;
     
-    if (existing.length === 0) {
+    if (existing.rows.length === 0) {
       // Create new balance record
       await pool.query(
-        'INSERT INTO balances (user_id, amount) VALUES (?, ?)',
+        'INSERT INTO balances (user_id, amount) VALUES ($1, $2)',
         [userId, 0]
       );
+      newAmount = parseFloat(amount);
     } else {
-      let tempAmount = parseFloat(existing[0].amount);
-      newAmount = tempAmount += amount;
+      let tempAmount = parseFloat(existing.rows[0].amount);
+      newAmount = tempAmount + parseFloat(amount);
 
       // Update existing record
       await pool.query(
-        'UPDATE balances SET amount = ? WHERE user_id = ?',
+        'UPDATE balances SET amount = $1 WHERE user_id = $2',
         [newAmount, userId]
       );
     }
@@ -33,21 +33,3 @@ const balanceModel = {
 };
 
 module.exports = balanceModel;
-
-// this is test data for database model
-// let userBalances = {
-//     1: 1200.0,
-//     2: 2500.0,
-// };
-
-// exports.getBalance = (userId) => {
-//     return userBalances[userId] || 0;
-// };
-
-// exports.updateBalance = (userId, amount) => {
-//     if (!userBalances[userId]) {
-//         userBalances[userId] = 0;
-//     }
-//     userBalances[userId] += amount;
-//     return userBalances[userId];
-// };
